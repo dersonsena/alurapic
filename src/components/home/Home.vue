@@ -1,18 +1,26 @@
 <template>
   <div class="corpo">
     <h1 class="centralizado">{{ titulo }}</h1>
+    <p class="centralizado" v-show="mensagem.length > 0">
+      {{ mensagem }}
+    </p>
+
     <input type="text" @input="filtro = $event.target.value" class="filtro" placeholder="Filtre por parte do titulo...">
 
     <ul class="lista-fotos">
       <li class="lista-fotos-item" v-for="foto of fotosComFiltro" :key="foto._id">
         <meu-painel :titulo="foto.titulo">
-          <imagem-responsiva :url="foto.url" :titulo="foto.titulo" />
+          <imagem-responsiva v-meu-transform.animate="90" :url="foto.url" :titulo="foto.titulo" />
           <meu-botao
             tipo="button"
             rotulo="Remover"
             @botaoAtivado="remover(foto)"
             :confirmacao="true"
             estilo="perigo" />
+
+          <router-link :to="{ name: 'alterar', params: { id: foto._id } }">
+            <meu-botao tipo="button" rotulo="Alterar"/>
+          </router-link>
         </meu-painel>
       </li>
     </ul>
@@ -23,6 +31,8 @@
 import Painel from '../shared/painel/Painel.vue';
 import ImagemResponsiva from '../shared/imagem-responsiva/ImagemResponsiva';
 import Botao from '../shared/botao/Botao.vue';
+import Transform from '../../directives/Transform';
+import FotoService from '../../domain/foto/FotoService';
 
 export default {
   components: {
@@ -30,17 +40,23 @@ export default {
     'imagem-responsiva': ImagemResponsiva,
     'meu-botao': Botao
   },
+  directives: {
+    'meu-transform': Transform
+  },
   data() {
     return {
       filtro: '',
       titulo: 'Alura PIC',
+      mensagem: '',
       fotos: []
     }
   },
   created() {
-    this.$http.get('http://localhost:3000/v1/fotos')
-      .then(response => response.json())
-      .then(fotos => this.fotos = fotos, error => console.error(error));
+    this.service = new FotoService(this.$resource);
+
+    this.service
+      .listar()
+      .then(fotos => this.fotos = fotos, error => this.mensagem = error.message);
   },
   computed: {
     fotosComFiltro() {
@@ -54,7 +70,14 @@ export default {
   },
   methods: {
     remover(foto) {
-      alert('Remover a foto!' + foto.titulo);
+      this.service
+        .apagar(foto._id)
+        .then(() => {
+          const indice = this.fotos.indexOf(foto);
+          this.fotos.splice(indice, 1);
+
+          this.mensagem = 'Foto removida com sucesso!';
+        }, error => this.mensagem = this.error.message );
     }
   }
 }

@@ -17,7 +17,9 @@ export default {
     'meu-menu': Menu
   },
   data() {
-    return { routes }
+    return {
+      routes: routes.filter(route => route.menu === true)
+    }
   }
 }
 </script>
